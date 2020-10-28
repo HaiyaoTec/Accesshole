@@ -1,6 +1,6 @@
 # Accesshole
-Accesshole 是一个内网代理服务，可以将内网的服务暴露到外网，并加上身份认证。
-可以直接在管理后台访问 XXL-Job, Nacos, Sentinel, Rabbitmq 以及一大批应用组件。
+Accesshole 是一个内网代理服务，可以将内网的服务暴露到外网，并加上身份认证。  
+接入后可以直接在管理后台访问 XXL-Job, Nacos, Sentinel, Rabbitmq 以及一大批应用组件。  
 比如：
 ```
 https://admin.sample.com/service/nacos
