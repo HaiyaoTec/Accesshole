@@ -14,13 +14,14 @@ docker pull jinuotec/accesshole:latest
 
 ### 配置
 
-创建容器时添加环境变量:  
-* AUTH_SECRET={{JWT secret}}
-* AUTH_KEY={{token}}
-* AUTH_ENABLE=false
-* BASE_PATH=service
-* PARAMS={"/rabbitmq":"http://172.26.5.152:15672/","/nacos":"http://172.25.1.152:8848/nacos/","/xxl-job-admin":"http://172.26.5.154:8080/xxl-job-admin/"}
-
+创建容器时添加环境变量:
+```
+AUTH_SECRET={{JWT secret}}
+AUTH_KEY={{token}}
+AUTH_ENABLE=false
+BASE_PATH=service
+ROUTERS={"/rabbitmq":"http://172.26.5.152:15672/","/nacos":"http://172.25.1.152:8848/nacos/","/xxl-job-admin":"http://172.26.5.154:8080/xxl-job-admin/"}
+```
 
 ### 使用
 
