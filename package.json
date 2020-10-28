@@ -1,0 +1,18 @@
+{
+  "name": "deadbeef",
+  "version": "1.0.0",
+  "description": "service接口转发服务",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js --auth.enable===false --auth.key===token --auth.secret===wdnmd /nacos/===http://172.25.1.152:8848/nacos/ /xxl-job-admin/===http://172.26.5.154:8080/xxl-job-admin/ /rabbitmq/===http://172.26.5.152:15672/ /kibana/===http://172.26.0.94:5601/",
+    "test": "node test.js"
+  },
+  "author": "heath",
+  "dependencies": {
+    "express": "^4.17.1",
+    "replacestream": "^4.0.3",
+    "http-proxy": "^1.18.1",
+    "jsonwebtoken": "^8.5.1",
+    "log4js": "^6.3.0"
+  }
+}
