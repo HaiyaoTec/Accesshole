@@ -16,16 +16,16 @@ docker pull jinuotec/accesshole:latest
 
 创建容器时添加环境变量:
 ```
-AUTH_SECRET={{JWT secret}}
-AUTH_KEY={{token}}
+AUTH_SECRET=${JWT secret}
+AUTH_KEY=token
 AUTH_ENABLE=false
 BASE_PATH=service
-ROUTERS={"/rabbitmq":"http://172.26.5.152:15672/","/nacos":"http://172.25.1.152:8848/nacos/","/xxl-job-admin":"http://172.26.5.154:8080/xxl-job-admin/"}
+ROUTERS={"rabbitmq":"http://172.26.5.152:15672/","nacos":"http://172.25.1.152:8848/","xxl-job":"http://172.26.5.154:8080/"}
 ```
 
 ### 使用
 
 之后直接访问, 将被转发到内网对应服务
-+ http://127.0.0.1:8080/service/rabbitmq  =>  http://172.26.5.152:15672/
-+ http://127.0.0.1:8080/service/nacos  =>  http://172.25.1.152:8848/nacos/
-+ http://127.0.0.1:8080/service/xxl-job-admin  =>  http://172.26.5.154:8080/xxl-job-admin/
++ http://127.0.0.1:8080/service/rabbitmq/  =>  http://172.26.5.152:15672/
++ http://127.0.0.1:8080/service/nacos/nacos/  =>  http://172.25.1.152:8848/nacos/
++ http://127.0.0.1:8080/service/xxl-job/xxl-job-admin/  =>  http://172.26.5.154:8080/xxl-job-admin/
