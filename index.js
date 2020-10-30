@@ -1,5 +1,6 @@
 const app = require('express')();
 const logger = require('log4js').getLogger();
+const cookieParser = require('cookie-parser');
 const proxy = require('http-proxy').createProxyServer(null);
 const jwt = require("jsonwebtoken");
 const expressModifyResponse = require('express-modify-response');
@@ -27,12 +28,13 @@ function testRouter() {
 
 function start() {
     let routers = process.env['ROUTERS'] || testRouter();
-    enableAuth = process.env['AUTH_ENABLE'] || "false";
-    authKey = process.env['AUTH_KEY'] || "";
-    authSecret = process.env['AUTH_SECRET'] || "";
+    enableAuth = process.env['AUTH_ENABLE'] || "true";
+    authKey = process.env['AUTH_KEY'] || "token";
+    authSecret = process.env['AUTH_SECRET'] || "senna2020";
     basePath = process.env['BASE_PATH'] || "service";
     mapper = JSON.parse(routers)
 
+    app.use(cookieParser());
     applyAuth()
     applyPathFix()
     for (const module in mapper) {
@@ -54,7 +56,6 @@ function start() {
                 applyRedirectSentinel(from);
                 break
         }
-
         applyProxy(from, to)
     }
 }
@@ -134,27 +135,28 @@ function applyAuth() {
             // 鉴权
             let requestIp = req.ip;
             let requestUrl = req.originalUrl;
+            logger.debug(`IP [${requestIp}] 正在访问 ${requestUrl}`);
+
             if (enableAuth !== "false") {
-                if (authSecret && authKey) {
+                if (authSecret && authKey && req.cookies) {
                     const token = req.cookies[authKey];
                     if (token == null) {
-                        logger.error(`[AUTH ERROR] IP [${requestIp}] 正在访问 ${requestUrl}`);
+                        logger.error(`[No Permission] IP [${requestIp}] 正在访问 ${requestUrl}`);
                         return res.sendStatus(401);
                     }
                     jwt.verify(token, authSecret, (err, user) => {
                         if (err) {
-                            logger.error(`[INVALID USER] IP [${requestIp}] 正在访问 ${requestUrl}`);
+                            logger.error(`[Invalid Token] IP [${requestIp}] 正在访问 ${requestUrl}`);
                             return res.sendStatus(403);
                         }
                         logger.debug(`用户 [${user}] IP [${requestIp}] 正在访问 ${requestUrl}`);
                     });
                 } else {
-                    logger.error(`[NO SETTING] IP [${requestIp}] 正在访问 ${requestUrl}`);
+                    logger.error(`[No Auth Info] IP [${requestIp}] 正在访问 ${requestUrl}`);
                     return res.sendStatus(401);
                 }
-            } else {
-                logger.debug(`IP [${requestIp}] 正在访问 ${requestUrl}`);
             }
+            next()
         });
     }
 }
@@ -171,12 +173,12 @@ function applyProxy(fromPath, to) {
 function applyPathFix() {
     // 一点点修补，主要为了解决 rabbitmq 在没有结尾 / 的时候转发错误的问题
     proxy.on('proxyReq', function (proxyReq, req, res, options) {
-        if (!req.originalUrl.endsWith('/')){
+        if (req.originalUrl === req.baseUrl){
             res.redirect(req.originalUrl+'/')
         }
     });
     proxy.on('proxyRes', function (proxyRes, req, res, options) {
-        if (proxyRes.statusCode == 302) {
+        if (proxyRes.statusCode === 302) {
             let jumpTo = proxyRes.headers['location']
             if (jumpTo.startsWith('http')) {
                 jumpTo = jumpTo.substr(jumpTo.substr(8).indexOf('/') + 8)

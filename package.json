@@ -13,6 +13,7 @@
     "replacestream": "^4.0.3",
     "http-proxy": "^1.18.1",
     "jsonwebtoken": "^8.5.1",
+    "cookie-parser": "^1.4.5",
     "log4js": "^6.3.0",
     "express-modify-response": "^1.0.2"
   }
