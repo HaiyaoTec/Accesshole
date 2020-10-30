@@ -5,6 +5,7 @@ Accesshole 是一个内网代理服务，可以将内网的服务暴露到外网
 ```
 https://admin.sample.com/service/nacos
 https://admin.sample.com/service/xxl-job
+https://admin.sample.com/service/custom
 ```
 
 ### Docker安装
