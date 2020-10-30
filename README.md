@@ -32,3 +32,6 @@ ROUTERS={"rabbitmq":"http://172.26.5.152:15672/","nacos":"http://172.25.1.152:88
 + http://127.0.0.1:8080/service/nacos/nacos/  =>  http://172.25.1.152:8848/nacos/
 + http://127.0.0.1:8080/service/sentinel/  =>  http://172.25.12.246:8080/
 + http://127.0.0.1:8080/service/xxl-job/xxl-job-admin/  =>  http://172.26.5.154:8080/xxl-job-admin/
+
+### License
+[MIT](https://github.com/JinuoTec/Accesshole/blob/master/LICENSE.md)
