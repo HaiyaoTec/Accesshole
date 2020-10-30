@@ -25,7 +25,7 @@ ROUTERS={"rabbitmq":"http://172.26.5.152:15672/","nacos":"http://172.25.1.152:88
 ```
 
 ### 使用
-注意 `nacos`, `xxl-job`, 'sentinel', 'rabbitmq' 几个中间件经过特殊出路，所以他们的转发需要使用这几个固定的 key
+注意 `nacos`, `xxl-job`, `sentinel`, `rabbitmq` 几个中间件经过特殊处理，所以他们的转发需要使用这几个固定的 key
 
 之后直接访问, 将被转发到内网对应服务
 + http://127.0.0.1:8080/service/rabbitmq/  =>  http://172.26.5.152:15672/
