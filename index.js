@@ -28,7 +28,7 @@ function testRouter() {
 
 function start() {
     let routers = process.env['ROUTERS'] || testRouter();
-    enableAuth = process.env['AUTH_ENABLE'] || "true";
+    enableAuth = process.env['AUTH_ENABLE'] || "false";
     authKey = process.env['AUTH_KEY'] || "token";
     authSecret = process.env['AUTH_SECRET'] || "senna2020";
     basePath = process.env['BASE_PATH'] || "service";
@@ -72,6 +72,7 @@ function applyRedirectXxlJob(fromPath) {
             return body.toString()
                 .replace(/\/xxl-job-admin\/static/g, fromPath + "xxl-job-admin/static")
                 .replace(/var base_url = '\/xxl-job-admin'/g, "var base_url = '" + fromPath + "xxl-job-admin'")
+                .replace(/<a href="\/xxl-job-admin/g, "<a href=\"" + fromPath + "xxl-job-admin")
         }
     ))
 }
@@ -102,7 +103,7 @@ function applyRedirectNacos(fromPath) {
             return false;
         }, (req, res, body) => {
             return body.toString()
-                .replace(/\/nacos\/console-fe/g, fromPath+"nacos/console-fe")
+                .replace(/\/nacos\/console-fe/g, fromPath + "nacos/console-fe")
         }
     ))
 }
@@ -124,13 +125,13 @@ function applyRedirectSentinel(fromPath) {
                 .replace(/app\/scripts/g, fromPath + "app\/scripts")
                 .replace(/\(\{url:"\//g, "({url:\"" + fromPath)
                 .replace(/\(\{url:"app/g, "({url:\"" + fromPath + "app")
-                .replace(/..\/..\/assets\/img\/sentinel-logo.png/g, fromPath+"assets/img/sentinel-logo.png")
+                .replace(/..\/..\/assets\/img\/sentinel-logo.png/g, fromPath + "assets/img/sentinel-logo.png")
         }
     ))
 }
 
 function applyAuth() {
-    if (enableAuth){
+    if (enableAuth) {
         app.use(function (req, res, next) {
             // 鉴权
             let requestIp = req.ip;
@@ -173,8 +174,8 @@ function applyProxy(fromPath, to) {
 function applyPathFix() {
     // 一点点修补，主要为了解决 rabbitmq 在没有结尾 / 的时候转发错误的问题
     proxy.on('proxyReq', function (proxyReq, req, res, options) {
-        if (req.originalUrl === req.baseUrl){
-            res.redirect(req.originalUrl+'/')
+        if (req.originalUrl === req.baseUrl) {
+            res.redirect(req.originalUrl + '/')
         }
     });
     proxy.on('proxyRes', function (proxyRes, req, res, options) {
