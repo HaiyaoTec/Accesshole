@@ -28,7 +28,7 @@ function testRouter() {
 
 function start() {
     let routers = process.env['ROUTERS'] || testRouter();
-    enableAuth = process.env['AUTH_ENABLE'] || "false";
+    enableAuth = process.env['AUTH_ENABLE'] || "true";
     authKey = process.env['AUTH_KEY'] || "token";
     authSecret = process.env['AUTH_SECRET'] || "senna2020";
     basePath = process.env['BASE_PATH'] || "service";
@@ -151,6 +151,7 @@ function applyAuth() {
                             return res.sendStatus(403);
                         }
                         logger.debug(`用户 [${user}] IP [${requestIp}] 正在访问 ${requestUrl}`);
+                        req.headers['access-payload'] = user.payload
                     });
                 } else {
                     logger.error(`[No Auth Info] IP [${requestIp}] 正在访问 ${requestUrl}`);
