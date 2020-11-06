@@ -1,13 +1,13 @@
 {
-  "name": "deadbeef",
+  "name": "accesshole",
   "version": "1.0.0",
-  "description": "service接口转发服务",
+  "description": "service proxy & auth",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "test": "node test.js"
   },
-  "author": "heath",
+  "author": "Jude95",
   "dependencies": {
     "express": "^4.17.1",
     "replacestream": "^4.0.3",
@@ -16,5 +16,9 @@
     "cookie-parser": "^1.4.5",
     "log4js": "^6.3.0",
     "express-modify-response": "^1.0.2"
-  }
+  },
+  "repository": {
+    "url": "https://github.com/JinuoTec/Accesshole"
+  },
+  "license": "MIT"
 }
