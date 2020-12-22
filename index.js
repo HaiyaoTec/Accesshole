@@ -38,7 +38,7 @@ function start() {
     if (process.env['ROUTERS']){
         mapper = JSON.parse(process.env['ROUTERS'])
         enableAuth = process.env['AUTH_ENABLE'] || "true";
-        authRule = JSON.parse(process.env['AUTH_ENABLE'] || '{"includes": [], "excludes":[]}')
+        authRule = JSON.parse(process.env['AUTH_RULE'] || '{"includes": [], "excludes":[]}')
         authKey = process.env['AUTH_KEY'] || "token";
         authSecret = process.env['AUTH_SECRET'] || "access_hole";
         basePath = process.env['BASE_PATH'] || "service";
