@@ -1,3 +1,5 @@
+const match = require('./match').default
+
 const app = require('express')();
 const logger = require('log4js').getLogger();
 const cookieParser = require('cookie-parser');
@@ -8,6 +10,7 @@ const expressModifyResponse = require('express-modify-response');
 logger.level = 'info';
 
 let enableAuth;
+let authRule;
 let authSecret;
 let authKey;
 let basePath;
@@ -22,17 +25,26 @@ try {
     logger.error(error);
 }
 
-function testRouter() {
-    return '{"rabbitmq":"http://172.26.5.152:15672/","nacos":"http://172.25.1.152:8848/","xxl-job":"http://172.26.5.154:8080/", "sentinel":"http://172.25.12.246:8080/"}'
+function testConfig() {
+    mapper = JSON.parse('{"rabbitmq":"http://172.26.5.152:15672/","nacos":"http://172.25.1.152:8848/","xxl-job":"http://172.26.5.154:8080/", "sentinel":"http://172.25.12.246:8080/", "admin": "http://172.25.10.67:8080/"}')
+    enableAuth = "true"
+    authRule = JSON.parse('{"includes": [], "excludes":[]}')
+    authKey = "token"
+    authSecret = "access_hole"
+    basePath = "service"
 }
 
 function start() {
-    let routers = process.env['ROUTERS'] || testRouter();
-    enableAuth = process.env['AUTH_ENABLE'] || "true";
-    authKey = process.env['AUTH_KEY'] || "token";
-    authSecret = process.env['AUTH_SECRET'] || "senna2020";
-    basePath = process.env['BASE_PATH'] || "service";
-    mapper = JSON.parse(routers)
+    if (process.env['ROUTERS']){
+        mapper = JSON.parse(process.env['ROUTERS'])
+        enableAuth = process.env['AUTH_ENABLE'] || "true";
+        authRule = JSON.parse(process.env['AUTH_ENABLE'] || '{"includes": [], "excludes":[]}')
+        authKey = process.env['AUTH_KEY'] || "token";
+        authSecret = process.env['AUTH_SECRET'] || "access_hole";
+        basePath = process.env['BASE_PATH'] || "service";
+    }else{
+        testConfig()
+    }
 
     app.use(cookieParser());
     applyAuth()
@@ -93,7 +105,6 @@ function applyRedirectRabbitMq(fromPath) {
 }
 
 function applyRedirectNacos(fromPath) {
-    let relativePath = fromPath.substring(1)
     app.use(fromPath, expressModifyResponse(
         (req, res) => {
             if (res.getHeader('Content-Type') === undefined) return false
@@ -138,7 +149,8 @@ function applyAuth() {
             let requestUrl = req.originalUrl;
             logger.debug(`IP [${requestIp}] 正在访问 ${requestUrl}`);
 
-            if (enableAuth !== "false") {
+            if (enableAuth !== "false" && match(authRule, requestUrl)) {
+
                 if (authSecret && authKey && req.cookies) {
                     const token = req.cookies[authKey];
                     if (token == null) {

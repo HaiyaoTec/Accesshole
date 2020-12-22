@@ -19,10 +19,14 @@ docker pull jude95/accesshole
 ```
 AUTH_SECRET=${JWT secret}
 AUTH_KEY=token
+AUTH_RULE={"includes": [], "excludes":["^\/service\/admin"]}
 AUTH_ENABLE=false
 BASE_PATH=service
 ROUTERS={"rabbitmq":"http://172.26.5.152:15672/","nacos":"http://172.25.1.152:8848/","xxl-job":"http://172.26.5.154:8080/","sentinel":"http://172.25.12.246:8080/"}
 ```
+`AUTH_RULE` 表示只对满足指定规则的 url 使用认证. `include` 对正则匹配的URL进行认证. `exclude` 对正则不匹配的URL进行认证. 留空则不生效.
+`AUTH_RULE` 是对 PATH 部分进行匹配，不包括 host。比如 `/service/nacos/login`
+
 
 ### 使用
 注意 `nacos`, `xxl-job`, `sentinel`, `rabbitmq` 几个中间件经过特殊处理，所以他们的转发需要使用这几个固定的 key
