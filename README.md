@@ -39,7 +39,7 @@ ROUTERS={"rabbitmq":"http://172.26.5.152:15672/","nacos":"http://172.25.1.152:88
 
 ### 认证
 当认证功能开启时，会对所有请求进行拦截认证，读取 `Cookie` 中的 AUTH_KEY 字段内容，使用 AUTH_SECRET 进行 JWT 校验。  
-如果校验成功，将 payload 的内容填充到请求头的 `access_payload` 字段中。
+如果校验成功，将 payload 的内容填充到请求头的 `access-payload` 字段中。
 
 ### License
 [MIT](https://github.com/JinuoTec/Accesshole/blob/master/LICENSE.md)
