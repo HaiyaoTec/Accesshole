@@ -6,6 +6,7 @@ const cookieParser = require('cookie-parser');
 const proxy = require('http-proxy').createProxyServer(null);
 const jwt = require("jsonwebtoken");
 const expressModifyResponse = require('express-modify-response');
+const fetch = require('node-fetch');
 
 logger.level = 'info';
 
@@ -26,25 +27,40 @@ try {
 }
 
 function testConfig() {
-    mapper = JSON.parse('{"rabbitmq":"http://172.26.5.152:15672/","nacos":"http://172.25.1.152:8848/","xxl-job":"http://172.26.5.154:8080/", "sentinel":"http://172.25.12.246:8080/", "admin": "http://172.25.10.67:8080/"}')
+    mapper = JSON.parse(`
+    {"rabbitmq":"http://172.26.5.152:15672/",
+    "nacos":"http://172.25.1.152:8848/",
+    "xxl-job":"http://172.26.5.154:8080/",
+     "sentinel":"http://172.25.12.246:8080/",
+      "admin": "http://127.0.0.1:8080/"}`)
     enableAuth = "true"
     authRule = JSON.parse('{"includes": [], "excludes":[]}')
     authKey = "token"
-    authSecret = "access_hole"
+    authSecret = "sylas2020"
     basePath = "service"
 }
 
 function start() {
-    if (process.env['ROUTERS']){
+    if (process.env['ROUTERS']) {
         mapper = JSON.parse(process.env['ROUTERS'])
         enableAuth = process.env['AUTH_ENABLE'] || "true";
         authRule = JSON.parse(process.env['AUTH_RULE'] || '{"includes": [], "excludes":[]}')
         authKey = process.env['AUTH_KEY'] || "token";
-        authSecret = process.env['AUTH_SECRET'] || "access_hole";
+        authSecret = process.env['AUTH_SECRET'] || "sylas2020";
         basePath = process.env['BASE_PATH'] || "service";
-    }else{
+    } else {
         testConfig()
     }
+
+    setInterval(() => {
+        fetch("/api/accessHole/definitions").then(async res => {
+                if (res) {
+                    mapper = await res.json();
+                }
+            }
+        )
+    }, 1000)
+
 
     app.use(cookieParser());
     applyAuth()

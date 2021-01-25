@@ -9,13 +9,14 @@
   },
   "author": "Jude95",
   "dependencies": {
+    "cookie-parser": "^1.4.5",
     "express": "^4.17.1",
-    "replacestream": "^4.0.3",
+    "express-modify-response": "^1.0.2",
     "http-proxy": "^1.18.1",
     "jsonwebtoken": "^8.5.1",
-    "cookie-parser": "^1.4.5",
     "log4js": "^6.3.0",
-    "express-modify-response": "^1.0.2"
+    "node-fetch": "^2.6.1",
+    "replacestream": "^4.0.3"
   },
   "repository": {
     "url": "https://github.com/JinuoTec/Accesshole"
