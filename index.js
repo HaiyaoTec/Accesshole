@@ -15,8 +15,9 @@ let authRule;
 let authSecret;
 let authKey;
 let basePath;
-let mapper;
-
+let router;
+// 请求路由配置的url
+let remoteRouterPath;
 try {
     start();
     app.listen(8899, function () {
@@ -27,47 +28,64 @@ try {
 }
 
 function testConfig() {
-    mapper = JSON.parse(`
-    {"rabbitmq":"http://172.26.5.152:15672/",
-    "nacos":"http://172.25.1.152:8848/",
-    "xxl-job":"http://172.26.5.154:8080/",
-     "sentinel":"http://172.25.12.246:8080/",
-      "admin": "http://127.0.0.1:8080/"}`)
+    router =
+        {
+            "rabbitmq": {
+                "target": "",
+                "authIncludes": [],
+                "authExcludes": []
+            }
+        }
+    authRule = {"includes": [], "excludes": []}
     enableAuth = "true"
-    authRule = JSON.parse('{"includes": [], "excludes":[]}')
     authKey = "token"
     authSecret = "sylas2020"
     basePath = "service"
+    remoteRouterPath = 'http://127.0.0.1:8080'
 }
 
 function start() {
-    if (process.env['ROUTERS']) {
-        mapper = JSON.parse(process.env['ROUTERS'])
+    if (process.env['REMOTE_ROUTER']) {
+        router = JSON.parse(process.env['ROUTERS'])
         enableAuth = process.env['AUTH_ENABLE'] || "true";
         authRule = JSON.parse(process.env['AUTH_RULE'] || '{"includes": [], "excludes":[]}')
         authKey = process.env['AUTH_KEY'] || "token";
         authSecret = process.env['AUTH_SECRET'] || "sylas2020";
         basePath = process.env['BASE_PATH'] || "service";
+        remoteRouterPath = process.env['REMOTE_ROUTER'] || 'http://127.0.0.1:8080'
+
     } else {
         testConfig()
     }
 
-    setInterval(() => {
-        fetch("/api/accessHole/definitions").then(async res => {
-                if (res) {
-                    mapper = await res.json();
+    if (remoteRouterPath) {
+        setInterval(() => {
+            fetch(remoteRouterPath).then(async res => {
+                    if (res) {
+                        router = await res.json();
+                    }
                 }
-            }
-        )
-    }, 1000)
+            ).catch(e => {
+                logger.error(e)
+            })
+        }, 1000);
+    }
 
 
     app.use(cookieParser());
-    applyAuth()
     applyPathFix()
-    for (const module in mapper) {
+    for (const module in router) {
         const from = `/${basePath}/${module}/`
-        let to = mapper[module];
+        let definition = router[module];
+        if (definition.includes || definition.excludes) {
+            applyAuth(module, {
+                includes: definition.includes,
+                excludes: definition.excludes
+            });
+        } else {
+            applyAuth()
+        }
+        let to = definition.target;
         logger.info(`注册 请求地址[${from}] 到 目的地址[${to}]`);
 
         switch (module) {
@@ -157,34 +175,18 @@ function applyRedirectSentinel(fromPath) {
     ))
 }
 
-function applyAuth() {
+function applyAuth(module, rules) {
     if (enableAuth) {
         app.use(function (req, res, next) {
             // 鉴权
             let requestIp = req.ip;
             let requestUrl = req.originalUrl;
             logger.debug(`IP [${requestIp}] 正在访问 ${requestUrl}`);
-
-            if (enableAuth !== "false" && match(authRule, requestUrl)) {
-
-                if (authSecret && authKey && req.cookies) {
-                    const token = req.cookies[authKey];
-                    if (token == null) {
-                        logger.error(`[No Permission] IP [${requestIp}] 正在访问 ${requestUrl}`);
-                        return res.sendStatus(401);
-                    }
-                    jwt.verify(token, authSecret, (err, user) => {
-                        if (err) {
-                            logger.error(`[Invalid Token] IP [${requestIp}] 正在访问 ${requestUrl}`);
-                            return res.sendStatus(403);
-                        }
-                        logger.debug(`用户 [${user}] IP [${requestIp}] 正在访问 ${requestUrl}`);
-                        req.headers['access-payload'] = user.payload
-                    });
-                } else {
-                    logger.error(`[No Auth Info] IP [${requestIp}] 正在访问 ${requestUrl}`);
-                    return res.sendStatus(401);
-                }
+            const reqRegexp = `/${module}/**`
+            if (rules && enableAuth !== "false" && new RegExp(reqRegexp).test(requestUrl) && match(rules, requestUrl)) {
+                return doAuth(req, res)
+            } else if (enableAuth !== "false" && match(authRule, requestUrl)) {
+                return doAuth(req, res)
             }
             next()
         });
@@ -198,6 +200,27 @@ function applyProxy(fromPath, to) {
             target: to
         }, next);
     })
+}
+
+function doAuth(req, res) {
+    if (authSecret && authKey && req.cookies) {
+        const token = req.cookies[authKey];
+        if (token == null) {
+            logger.error(`[No Permission] IP [${requestIp}] 正在访问 ${requestUrl}`);
+            return res.sendStatus(401);
+        }
+        jwt.verify(token, authSecret, (err, user) => {
+            if (err) {
+                logger.error(`[Invalid Token] IP [${requestIp}] 正在访问 ${requestUrl}`);
+                return res.sendStatus(403);
+            }
+            logger.debug(`用户 [${user}] IP [${requestIp}] 正在访问 ${requestUrl}`);
+            req.headers['access-payload'] = user.payload
+        });
+    } else {
+        logger.error(`[No Auth Info] IP [${requestIp}] 正在访问 ${requestUrl}`);
+        return res.sendStatus(401);
+    }
 }
 
 function applyPathFix() {
