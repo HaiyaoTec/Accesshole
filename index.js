@@ -14,7 +14,6 @@ let enableAuth;
 let authRule;
 let authSecret;
 let authKey;
-let basePath;
 let router;
 // 请求路由配置的url
 let remoteRouterPath;
@@ -40,47 +39,17 @@ function testConfig() {
     enableAuth = "true"
     authKey = "token"
     authSecret = "sylas2020"
-    basePath = "service"
-    remoteRouterPath = 'http://127.0.0.1:8080'
+    remoteRouterPath = 'http://127.0.0.1:8080/accessHole/definitions'
 }
 
-function start() {
-    if (process.env['REMOTE_ROUTER']) {
-        router = JSON.parse(process.env['ROUTERS'])
-        enableAuth = process.env['AUTH_ENABLE'] || "true";
-        authRule = JSON.parse(process.env['AUTH_RULE'] || '{"includes": [], "excludes":[]}')
-        authKey = process.env['AUTH_KEY'] || "token";
-        authSecret = process.env['AUTH_SECRET'] || "sylas2020";
-        basePath = process.env['BASE_PATH'] || "service";
-        remoteRouterPath = process.env['REMOTE_ROUTER'] || 'http://127.0.0.1:8080'
-
-    } else {
-        testConfig()
-    }
-
-    if (remoteRouterPath) {
-        setInterval(() => {
-            fetch(remoteRouterPath).then(async res => {
-                    if (res) {
-                        router = await res.json();
-                    }
-                }
-            ).catch(e => {
-                logger.error(e)
-            })
-        }, 1000);
-    }
-
-
-    app.use(cookieParser());
-    applyPathFix()
+function applyRoute() {
     for (const module in router) {
-        const from = `/${basePath}/${module}/`
+        const from = `${module}/`
         let definition = router[module];
-        if (definition.includes || definition.excludes) {
+        if (definition.authIncludes || definition.authExcludes) {
             applyAuth(module, {
-                includes: definition.includes,
-                excludes: definition.excludes
+                includes: definition.authIncludes,
+                excludes: definition.authExcludes
             });
         } else {
             applyAuth()
@@ -104,6 +73,39 @@ function start() {
         }
         applyProxy(from, to)
     }
+}
+
+function start() {
+    if (process.env['REMOTE_ROUTER']) {
+        router = JSON.parse(process.env['ROUTERS'])
+        enableAuth = process.env['AUTH_ENABLE'] || "true";
+        authRule = JSON.parse(process.env['AUTH_RULE'] || '{"includes": [], "excludes":[]}')
+        authKey = process.env['AUTH_KEY'] || "token";
+        authSecret = process.env['AUTH_SECRET'] || "sylas2020";
+        remoteRouterPath = process.env['REMOTE_ROUTER'] || 'http://127.0.0.1:8080'
+
+    } else {
+        testConfig()
+    }
+
+    if (remoteRouterPath) {
+        setInterval(() => {
+            fetch(remoteRouterPath).then(async res => {
+                    if (res) {
+                        router = await res.json();
+                        applyRoute()
+                    }
+                }
+            ).catch(e => {
+                logger.error(e)
+            })
+        }, 10000);
+    }
+
+
+    app.use(cookieParser());
+    applyPathFix()
+    applyRoute();
 }
 
 function applyRedirectXxlJob(fromPath) {
@@ -177,16 +179,17 @@ function applyRedirectSentinel(fromPath) {
 
 function applyAuth(module, rules) {
     if (enableAuth) {
+        let currentModule = module
         app.use(function (req, res, next) {
             // 鉴权
             let requestIp = req.ip;
             let requestUrl = req.originalUrl;
             logger.debug(`IP [${requestIp}] 正在访问 ${requestUrl}`);
-            const reqRegexp = `/${module}/**`
+            const reqRegexp = `/${currentModule}/(.*)`
             if (rules && enableAuth !== "false" && new RegExp(reqRegexp).test(requestUrl) && match(rules, requestUrl)) {
-                return doAuth(req, res)
+                return doAuth(req, res, requestIp, requestUrl)
             } else if (enableAuth !== "false" && match(authRule, requestUrl)) {
-                return doAuth(req, res)
+                return doAuth(req, res, requestIp, requestUrl)
             }
             next()
         });
@@ -202,7 +205,7 @@ function applyProxy(fromPath, to) {
     })
 }
 
-function doAuth(req, res) {
+function doAuth(req, res, requestIp, requestUrl) {
     if (authSecret && authKey && req.cookies) {
         const token = req.cookies[authKey];
         if (token == null) {
