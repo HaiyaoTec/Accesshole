@@ -14,6 +14,7 @@ let enableAuth;
 let authRule;
 let authSecret;
 let authKey;
+let basePath;
 let router;
 // 请求路由配置的url
 let remoteRouterPath;
@@ -37,6 +38,7 @@ function testConfig() {
         }
     authRule = {"includes": [], "excludes": []}
     enableAuth = "true"
+    basePath = "service"
     authKey = "token"
     authSecret = "sylas2020"
     remoteRouterPath = 'http://127.0.0.1:8080/accessHole/definitions'
@@ -44,7 +46,7 @@ function testConfig() {
 
 function applyRoute() {
     for (const module in router) {
-        const from = `${module}/`
+        const from = `/${basePath}/${module}`
         let definition = router[module];
         if (definition.authIncludes || definition.authExcludes) {
             applyAuth(module, {
