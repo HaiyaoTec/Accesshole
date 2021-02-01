@@ -30,8 +30,13 @@ try {
 function testConfig() {
     router =
         {
-            "rabbitmq": {
-                "target": "",
+            "login": {
+                "target": "http://baidu.com",
+                "authIncludes": [],
+                "authExcludes": []
+            },
+            "test": {
+                "target": "http://127.0.0.1:9999/",
                 "authIncludes": [],
                 "authExcludes": []
             }
@@ -76,6 +81,15 @@ function applyRoute() {
         applyProxy(from, to)
     }
 }
+
+// function applyRedirectLogin() {
+//     app.use(function (req, res, next) {
+//         if (res.statusCode === 403) {
+//             res.redirect(router[`/${basePath}/login`])
+//         }
+//         next();
+//     });
+// }
 
 function start() {
     if (process.env['REMOTE_ROUTER']) {
@@ -242,6 +256,8 @@ function applyPathFix() {
                 jumpTo = jumpTo.substr(jumpTo.substr(8).indexOf('/') + 8)
             }
             proxyRes.headers['location'] = req.baseUrl + jumpTo
+        } else if (proxyRes.statusCode === 403) {
+            res.redirect(router["login"].target)
         }
     });
 }
