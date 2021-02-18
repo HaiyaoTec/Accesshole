@@ -30,16 +30,16 @@ try {
 function testConfig() {
     router =
         {
-            "login": {
-                "target": "http://baidu.com",
-                "authIncludes": [],
-                "authExcludes": []
-            },
-            "test": {
-                "target": "http://127.0.0.1:9999/",
-                "authIncludes": [],
-                "authExcludes": []
-            }
+            // "login": {
+            //     "target": "http://baidu.com",
+            //     "authIncludes": [],
+            //     "authExcludes": []
+            // },
+            // "test": {
+            //     "target": "http://127.0.0.1:9999/",
+            //     "authIncludes": [],
+            //     "authExcludes": []
+            // }
         }
     authRule = {"includes": [], "excludes": []}
     enableAuth = "true"
@@ -82,15 +82,6 @@ function applyRoute() {
     }
 }
 
-// function applyRedirectLogin() {
-//     app.use(function (req, res, next) {
-//         if (res.statusCode === 403) {
-//             res.redirect(router[`/${basePath}/login`])
-//         }
-//         next();
-//     });
-// }
-
 function start() {
     if (process.env['REMOTE_ROUTER']) {
         router = JSON.parse(process.env['ROUTERS'])
@@ -99,6 +90,7 @@ function start() {
         authKey = process.env['AUTH_KEY'] || "token";
         authSecret = process.env['AUTH_SECRET'] || "sylas2020";
         remoteRouterPath = process.env['REMOTE_ROUTER'] || 'http://127.0.0.1:8080'
+        basePath = process.env['BASE_PATH'] || "service"
 
     } else {
         testConfig()
@@ -117,11 +109,10 @@ function start() {
             })
         }, 10000);
     }
-
-
-    app.use(cookieParser());
     applyPathFix()
+    app.use(cookieParser());
     applyRoute();
+
 }
 
 function applyRedirectXxlJob(fromPath) {
@@ -256,8 +247,10 @@ function applyPathFix() {
                 jumpTo = jumpTo.substr(jumpTo.substr(8).indexOf('/') + 8)
             }
             proxyRes.headers['location'] = req.baseUrl + jumpTo
-        } else if (proxyRes.statusCode === 403) {
-            res.redirect(router["login"].target)
+        }
+        res.statusCode = proxyRes.statusCode
+        if (res.statusCode === 403) {
+            res.redirect(`/${basePath}/login`)
         }
     });
 }

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, viewport-fit=cover, user-scalable=no">
+
+
+    <style>
+        html {
+            height: 100%;
+        }
+
+        body {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+        }
+
+        ::-webkit-scrollbar {
+            width: 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <title>幸运观众</title>
+    <p>未使用的数字：<span id="unused">0</span></p>
+    <button onclick="start()">开始</button>
+    <button onclick="stop()">停止</button>
+    <button onclick="finish()">提交</button>
+    <div class="number" id="number"></div>
+    <button onclick="reset()">重置</button>
+</div>
+<script type="text/javascript">
+    let unused = [];
+    let time = null;
+    let randomIndex = null;
+
+    for (let i = 0; i < 10; i++) {
+        if (!!localStorage.getItem("used") && localStorage.getItem("used").indexOf(i) !== -1) continue
+        unused.push(i)
+    }
+    document.getElementById("unused").innerText = unused.join(",")
+    console.log(unused)
+
+    function start() {
+        if (time !== null) return;
+        if (unused.length === 0) {
+            document.getElementById("number").innerText = "抽完了"
+            return;
+        }
+        time = setInterval(() => {
+            randomIndex = parseInt(Math.random() * unused.length)
+            document.getElementById("number").innerText = unused[randomIndex]
+        }, 100)
+    }
+
+    function finish() {
+        if (time === null && randomIndex !== null) {
+            let del = unused[randomIndex]
+            unused.splice(randomIndex, 1)
+            document.getElementById("number").innerText = ""
+            let usedList = []
+            if (localStorage.getItem("used") !== null) {
+                usedList = localStorage.getItem("used").split(",")
+            }
+            usedList.push(del)
+            localStorage.setItem("used", usedList.join(","));
+            randomIndex = null
+            document.getElementById("unused").innerText = unused.join(",")
+
+        }
+
+    }
+
+    function stop() {
+        clearInterval(time)
+        time = null
+    }
+
+
+    function reset() {
+        localStorage.removeItem("used")
+        location.reload();
+    }
+
+
+</script>
+</body>
+</html>
