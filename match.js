@@ -13,7 +13,7 @@ function calInclude(includes, url) {
 }
 
 function calExclude(excludes, url) {
-    if (excludes) {
+    if (excludes && excludes.length > 0) {
         for (let exclude of excludes) {
             return !new RegExp(exclude).test(url);
         }

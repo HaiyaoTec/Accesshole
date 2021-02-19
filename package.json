@@ -4,7 +4,7 @@
   "description": "service proxy & auth",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "/usr/local/bin/node index.js",
     "test": "node test.js"
   },
   "author": "Jude95",

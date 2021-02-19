@@ -46,17 +46,17 @@ function testConfig() {
     basePath = "service"
     authKey = "token"
     authSecret = "sylas2020"
-    remoteRouterPath = 'http://127.0.0.1:8080/accessHole/definitions'
+    remoteRouterPath = 'http://admin.ashe.jinuo.fun/api/accessHole/definitions'
 }
 
 function applyRoute() {
     for (const module in router) {
         const from = `/${basePath}/${module}`
         let definition = router[module];
-        if (definition.authIncludes || definition.authExcludes) {
+        if (definition.authInclude || definition.authExclude) {
             applyAuth(module, {
-                includes: definition.authIncludes,
-                excludes: definition.authExcludes
+                includes: definition.authInclude,
+                excludes: definition.authExclude
             });
         } else {
             applyAuth()
@@ -186,19 +186,16 @@ function applyRedirectSentinel(fromPath) {
 
 function applyAuth(module, rules) {
     if (enableAuth) {
-        let currentModule = module
         app.use(function (req, res, next) {
             // 鉴权
             let requestIp = req.ip;
             let requestUrl = req.originalUrl;
             logger.debug(`IP [${requestIp}] 正在访问 ${requestUrl}`);
-            const reqRegexp = `/${currentModule}/(.*)`
-            if (rules && enableAuth !== "false" && new RegExp(reqRegexp).test(requestUrl) && match(rules, requestUrl)) {
-                return doAuth(req, res, requestIp, requestUrl)
-            } else if (enableAuth !== "false" && match(authRule, requestUrl)) {
-                return doAuth(req, res, requestIp, requestUrl)
+            if (rules && enableAuth !== "false" && match(rules, requestUrl)) {
+                return doAuth(req, res, requestIp, requestUrl, next);
+            } else {
+                next();
             }
-            next()
         });
     }
 }
@@ -212,7 +209,7 @@ function applyProxy(fromPath, to) {
     })
 }
 
-function doAuth(req, res, requestIp, requestUrl) {
+function doAuth(req, res, requestIp, requestUrl,next) {
     if (authSecret && authKey && req.cookies) {
         const token = req.cookies[authKey];
         if (token == null) {
@@ -226,6 +223,7 @@ function doAuth(req, res, requestIp, requestUrl) {
             }
             logger.debug(`用户 [${user}] IP [${requestIp}] 正在访问 ${requestUrl}`);
             req.headers['access-payload'] = user.payload
+            next()
         });
     } else {
         logger.error(`[No Auth Info] IP [${requestIp}] 正在访问 ${requestUrl}`);
