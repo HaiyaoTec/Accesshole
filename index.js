@@ -1,6 +1,7 @@
 const match = require('./match').default
 
-const app = require('express')();
+let app = require('express')();
+let server
 const logger = require('log4js').getLogger();
 const cookieParser = require('cookie-parser');
 const proxy = require('http-proxy').createProxyServer(null);
@@ -20,7 +21,7 @@ let router;
 let remoteRouterPath;
 try {
     start();
-    app.listen(8899, function () {
+    server = app.listen(8899, function () {
         logger.info('应用实例正在监听%s端口\n', 8899);
     });
 } catch (error) {
@@ -28,25 +29,13 @@ try {
 }
 
 function testConfig() {
-    router =
-        {
-            // "login": {
-            //     "target": "http://baidu.com",
-            //     "authIncludes": [],
-            //     "authExcludes": []
-            // },
-            // "test": {
-            //     "target": "http://127.0.0.1:9999/",
-            //     "authIncludes": [],
-            //     "authExcludes": []
-            // }
-        }
+    router = {}
     authRule = {"includes": [], "excludes": []}
     enableAuth = "true"
     basePath = "service"
     authKey = "token"
     authSecret = "sylas2020"
-    remoteRouterPath = 'http://admin.ashe.jinuo.fun/api/accessHole/definitions'
+    remoteRouterPath = 'http://172.25.4.126/api/accessHole/definitions'
 }
 
 function applyRoute() {
@@ -100,8 +89,21 @@ function start() {
         setInterval(() => {
             fetch(remoteRouterPath).then(async res => {
                     if (res) {
-                        router = await res.json();
-                        applyRoute()
+                        let newRouter = await res.json();
+
+                        if (JSON.stringify(newRouter) !== JSON.stringify(router)) {
+                            router = newRouter
+                            server.close(() => {
+                                logger.info("发现新的路由，关闭已有路由")
+                            })
+                            app = require('express')();
+                            applyPathFix()
+                            app.use(cookieParser());
+                            applyRoute();
+                            server = app.listen(8899, function () {
+                                logger.info('应用实例正在监听%s端口\n', 8899);
+                            });
+                        }
                     }
                 }
             ).catch(e => {
@@ -209,7 +211,7 @@ function applyProxy(fromPath, to) {
     })
 }
 
-function doAuth(req, res, requestIp, requestUrl,next) {
+function doAuth(req, res, requestIp, requestUrl, next) {
     if (authSecret && authKey && req.cookies) {
         const token = req.cookies[authKey];
         if (token == null) {
@@ -232,24 +234,24 @@ function doAuth(req, res, requestIp, requestUrl,next) {
 }
 
 function applyPathFix() {
-    // 一点点修补，主要为了解决 rabbitmq 在没有结尾 / 的时候转发错误的问题
-    proxy.on('proxyReq', function (proxyReq, req, res, options) {
-        if (req.originalUrl === req.baseUrl) {
-            res.redirect(req.originalUrl + '/')
-        }
-    });
+
     proxy.on('proxyRes', function (proxyRes, req, res, options) {
-        if (proxyRes.statusCode === 302) {
-            let jumpTo = proxyRes.headers['location']
-            if (jumpTo.startsWith('http')) {
-                jumpTo = jumpTo.substr(jumpTo.substr(8).indexOf('/') + 8)
+        try {
+            if (proxyRes.statusCode === 302) {
+                let jumpTo = proxyRes.headers['location']
+                if (jumpTo.startsWith('http')) {
+                    jumpTo = jumpTo.substr(jumpTo.substr(8).indexOf('/') + 8)
+                }
+                proxyRes.headers['location'] = req.baseUrl + jumpTo
             }
-            proxyRes.headers['location'] = req.baseUrl + jumpTo
+            res.statusCode = proxyRes.statusCode
+            if (res.statusCode === 403) {
+                res.redirect(`/${basePath}/login`)
+            }
+        } catch (e) {
+            logger.error(e)
         }
-        res.statusCode = proxyRes.statusCode
-        if (res.statusCode === 403) {
-            res.redirect(`/${basePath}/login`)
-        }
+
     });
 }
 
