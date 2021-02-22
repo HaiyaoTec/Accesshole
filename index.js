@@ -188,7 +188,7 @@ function applyRedirectSentinel(fromPath) {
 
 function applyAuth(module, rules) {
     if (enableAuth) {
-        app.use(function (req, res, next) {
+        app.use(`/${basePath}/${module}`, function (req, res, next) {
             // 鉴权
             let requestIp = req.ip;
             let requestUrl = req.originalUrl;
@@ -216,12 +216,12 @@ function doAuth(req, res, requestIp, requestUrl, next) {
         const token = req.cookies[authKey];
         if (token == null) {
             logger.error(`[No Permission] IP [${requestIp}] 正在访问 ${requestUrl}`);
-            return res.sendStatus(401);
+            return res.redirect(`/${basePath}/login`);
         }
         jwt.verify(token, authSecret, (err, user) => {
             if (err) {
                 logger.error(`[Invalid Token] IP [${requestIp}] 正在访问 ${requestUrl}`);
-                return res.sendStatus(403);
+                return res.redirect(`/${basePath}/login`);
             }
             logger.debug(`用户 [${user}] IP [${requestIp}] 正在访问 ${requestUrl}`);
             req.headers['access-payload'] = user.payload
@@ -229,7 +229,7 @@ function doAuth(req, res, requestIp, requestUrl, next) {
         });
     } else {
         logger.error(`[No Auth Info] IP [${requestIp}] 正在访问 ${requestUrl}`);
-        return res.sendStatus(401);
+        return res.redirect(`/${basePath}/login`);
     }
 }
 
