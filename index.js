@@ -4,10 +4,11 @@ let app = require('express')();
 let server
 const logger = require('log4js').getLogger();
 const cookieParser = require('cookie-parser');
-const proxy = require('http-proxy').createProxyServer(null);
+let proxy = require('http-proxy').createProxyServer(null);
 const jwt = require("jsonwebtoken");
 const expressModifyResponse = require('express-modify-response');
 const fetch = require('node-fetch');
+const Uri = require("url");
 
 logger.level = 'info';
 
@@ -35,12 +36,12 @@ function testConfig() {
     basePath = "service"
     authKey = "token"
     authSecret = "sylas2020"
-    remoteRouterPath = 'http://172.25.4.126/api/accessHole/definitions'
+    remoteRouterPath = 'http://127.0.0.1:8080/accessHole/definitions'
 }
 
 function applyRoute() {
     for (const module in router) {
-        const from = `/${basePath}/${module}`
+        let from = `/${basePath}/${module}`
         let definition = router[module];
         if (definition.authInclude || definition.authExclude) {
             applyAuth(module, {
@@ -51,6 +52,9 @@ function applyRoute() {
             applyAuth()
         }
         let to = definition.target;
+        if (!from.endsWith("/")) {
+            from = from + "/"
+        }
         logger.info(`注册 请求地址[${from}] 到 目的地址[${to}]`);
 
         switch (module) {
@@ -67,7 +71,8 @@ function applyRoute() {
                 applyRedirectSentinel(from);
                 break
         }
-        applyProxy(from, to)
+
+        applyProxy(from, to);
     }
 }
 
@@ -96,6 +101,7 @@ function start() {
                             server.close(() => {
                                 logger.info("发现新的路由，关闭已有路由")
                             })
+                            proxy = require('http-proxy').createProxyServer(null);
                             app = require('express')();
                             applyPathFix()
                             app.use(cookieParser());
@@ -124,8 +130,10 @@ function applyRedirectXxlJob(fromPath) {
             if (res.getHeader('Content-Type').startsWith('text/html')) return true;
             if (res.getHeader('Content-Type').startsWith('text/css')) return true;
             if (res.getHeader('Content-Type').startsWith('application/javascript')) return true;
+            if (res.statusCode===302) return true
             return false;
         }, (req, res, body) => {
+            console.log(res.headers)
             return body.toString()
                 .replace(/\/xxl-job-admin\/static/g, fromPath + "xxl-job-admin/static")
                 .replace(/var base_url = '\/xxl-job-admin'/g, "var base_url = '" + fromPath + "xxl-job-admin'")
@@ -201,6 +209,15 @@ function applyAuth(module, rules) {
         });
     }
 }
+//
+// function getRealUrl(req, to) {
+//     let uri = Uri.parse(to)
+//     if (req.url.indexOf(".js") === -1 && req.url.indexOf(".css") === -1) {
+//         return to
+//     } else {
+//         return uri.protocol + "//" + uri.host
+//     }
+// }
 
 function applyProxy(fromPath, to) {
     app.use(fromPath, function (req, res, next) {
@@ -208,6 +225,8 @@ function applyProxy(fromPath, to) {
             changeOrigin: true,
             target: to
         }, next);
+
+
     })
 }
 
@@ -244,8 +263,7 @@ function applyPathFix() {
                 }
                 proxyRes.headers['location'] = req.baseUrl + jumpTo
             }
-            res.statusCode = proxyRes.statusCode
-            if (res.statusCode === 403) {
+            if (proxyRes.statusCode === 403) {
                 res.redirect(`/${basePath}/login`)
             }
         } catch (e) {
