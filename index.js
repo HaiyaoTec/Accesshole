@@ -263,6 +263,7 @@ function applyPathFix() {
                 }
                 proxyRes.headers['location'] = req.baseUrl + jumpTo
             }
+            res.statusCode = proxyRes.statusCode
             if (proxyRes.statusCode === 403) {
                 res.redirect(`/${basePath}/login`)
             }
