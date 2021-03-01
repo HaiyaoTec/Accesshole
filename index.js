@@ -36,7 +36,7 @@ function testConfig() {
     basePath = "service"
     authKey = "token"
     authSecret = "sylas2020"
-    remoteRouterPath = 'http://127.0.0.1:8080/accessHole/definitions'
+    remoteRouterPath = 'http://172.25.4.126/api/accessHole/definitions'
 }
 
 function applyRoute() {
@@ -263,9 +263,8 @@ function applyPathFix() {
                 }
                 proxyRes.headers['location'] = req.baseUrl + jumpTo
             }
-            res.statusCode = proxyRes.statusCode
-            if (proxyRes.statusCode === 403) {
-                res.redirect(`/${basePath}/login`)
+            if (proxyRes.statusCode=== 403) {
+                res.redirect(`/${basePath}/login/console/login`)
             }
         } catch (e) {
             logger.error(e)
