@@ -130,10 +130,9 @@ function applyRedirectXxlJob(fromPath) {
             if (res.getHeader('Content-Type').startsWith('text/html')) return true;
             if (res.getHeader('Content-Type').startsWith('text/css')) return true;
             if (res.getHeader('Content-Type').startsWith('application/javascript')) return true;
-            if (res.statusCode===302) return true
+            if (res.statusCode === 302) return true
             return false;
         }, (req, res, body) => {
-            console.log(res.headers)
             return body.toString()
                 .replace(/\/xxl-job-admin\/static/g, fromPath + "xxl-job-admin/static")
                 .replace(/var base_url = '\/xxl-job-admin'/g, "var base_url = '" + fromPath + "xxl-job-admin'")
@@ -209,6 +208,7 @@ function applyAuth(module, rules) {
         });
     }
 }
+
 //
 // function getRealUrl(req, to) {
 //     let uri = Uri.parse(to)
@@ -263,7 +263,7 @@ function applyPathFix() {
                 }
                 proxyRes.headers['location'] = req.baseUrl + jumpTo
             }
-            if (proxyRes.statusCode=== 403) {
+            if (proxyRes.statusCode === 403) {
                 res.redirect(`/${basePath}/login/console/login`)
             }
         } catch (e) {
