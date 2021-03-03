@@ -95,6 +95,12 @@ function start() {
             fetch(remoteRouterPath).then(async res => {
                     if (res) {
                         let newRouter = await res.json();
+                        if (!!newRouter) {
+                            return
+                        }
+                        if (newRouter && newRouter.error) {
+                            return;
+                        }
 
                         if (JSON.stringify(newRouter) !== JSON.stringify(router)) {
                             router = newRouter
