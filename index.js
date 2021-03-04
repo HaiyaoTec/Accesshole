@@ -36,7 +36,7 @@ function testConfig() {
     basePath = "service"
     authKey = "token"
     authSecret = "sylas2020"
-    remoteRouterPath = 'http://172.25.4.126/api/accessHole/definitions'
+    remoteRouterPath = 'http://127.0.0.1:8080/accessHole/definitions'
 }
 
 function applyRoute() {
@@ -69,6 +69,9 @@ function applyRoute() {
                 break
             case "sentinel":
                 applyRedirectSentinel(from);
+                break
+            case "springBootAdmin":
+                applyRedirectSpringBootAdmin(from)
                 break
         }
 
@@ -147,6 +150,21 @@ function applyRedirectXxlJob(fromPath) {
     ))
 }
 
+function applyRedirectSpringBootAdmin(from) {
+    app.use(from, expressModifyResponse(
+        (req, res) => {
+            if (res.getHeader('Content-Type') === undefined) return false
+            if (res.getHeader('Content-Type').startsWith('text/html')) return true;
+            if (res.statusCode === 302) return true
+            return false;
+        }, (req, res, body) => {
+            // return body.toString()
+            return body.toString().replace(/<base href="http:\/\/.*\/admin\//,`<base href="${from}admin/" />`)
+        }
+    ))
+}
+
+
 function applyRedirectRabbitMq(fromPath) {
     app.use(fromPath, expressModifyResponse(
         (req, res) => {
@@ -202,6 +220,10 @@ function applyRedirectSentinel(fromPath) {
 function applyAuth(module, rules) {
     if (enableAuth) {
         app.use(`/${basePath}/${module}`, function (req, res, next) {
+            if (req.url.indexOf(".css") !== -1 || req.url.indexOf(".js") !== -1) {
+                next()
+                return
+            }
             // 鉴权
             let requestIp = req.ip;
             let requestUrl = req.originalUrl;
@@ -261,6 +283,16 @@ function doAuth(req, res, requestIp, requestUrl, next) {
 function applyPathFix() {
 
     proxy.on('proxyRes', function (proxyRes, req, res, options) {
+
+        // debug message
+        // let body = [];
+        // proxyRes.on('data', function (chunk) {
+        //     body.push(chunk);
+        // });
+        // proxyRes.on('end', function () {
+        //     body = Buffer.concat(body).toString();
+        //     console.log("res from proxied server:", body);
+        // });
         try {
             if (proxyRes.statusCode === 302) {
                 let jumpTo = proxyRes.headers['location']
