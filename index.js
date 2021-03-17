@@ -159,7 +159,10 @@ function applyRedirectSpringBootAdmin(from) {
             return false;
         }, (req, res, body) => {
             // return body.toString()
-            return body.toString().replace(/<base href="http:\/\/.*\/admin\//,`<base href="${from}admin/" />`)
+            let bodyStr = body.toString()
+            bodyStr = bodyStr.replace(/<base href="http:\/\/.*\/admin\//, `<base href="${from}admin/" />`)
+            bodyStr = bodyStr.replace(/<base href="https:\/\/.*\/admin\//, `<base href="${from}admin/" />`)
+            return bodyStr
         }
     ))
 }
