@@ -17,6 +17,7 @@
     "log4js": "^6.3.0",
     "node": "^15.8.0",
     "node-fetch": "^2.6.1",
+    "pako": "^2.0.3",
     "replacestream": "^4.0.3"
   },
   "repository": {

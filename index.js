@@ -1,4 +1,5 @@
 const match = require('./match').default
+const pako = require('pako');
 
 let app = require('express')();
 let server
@@ -8,7 +9,6 @@ let proxy = require('http-proxy').createProxyServer(null);
 const jwt = require("jsonwebtoken");
 const expressModifyResponse = require('express-modify-response');
 const fetch = require('node-fetch');
-const Uri = require("url");
 
 logger.level = 'info';
 
@@ -36,8 +36,9 @@ function testConfig() {
     basePath = "service"
     authKey = "token"
     authSecret = "sylas2020"
-    remoteRouterPath = 'http://127.0.0.1:8080/accessHole/definitions'
+    remoteRouterPath = 'http://172.21.208.181:8080/accessHole/definitions'
 }
+
 
 function applyRoute() {
     for (const module in router) {
@@ -72,6 +73,9 @@ function applyRoute() {
                 break
             case "springBootAdmin":
                 applyRedirectSpringBootAdmin(from)
+                break
+            case "kibana":
+                applyRedirectKibana(from)
                 break
         }
 
@@ -167,6 +171,116 @@ function applyRedirectSpringBootAdmin(from) {
     ))
 }
 
+let kibanaUrls =
+    [
+        '/bundles/kbn-ui-shared-deps/kbn-ui-shared-deps.@elastic.js',
+        '/bundles/kbn-ui-shared-deps/kbn-ui-shared-deps.js',
+        '/built_assets/dlls/vendors_runtime.bundle.dll.js',
+        '/built_assets/dlls/vendors_0.bundle.dll.js',
+        '/built_assets/dlls/vendors_1.bundle.dll.js',
+        '/built_assets/dlls/vendors_2.bundle.dll.js',
+        '/built_assets/dlls/vendors_3.bundle.dll.js',
+        '/bundles/commons.bundle.js',
+        '/bundles/plugin/kibanaUtils/kibanaUtils.plugin.js',
+        '/bundles/plugin/esUiShared/esUiShared.plugin.js',
+        '/bundles/plugin/kibanaReact/kibanaReact.plugin.js',
+        '/bundles/core.bundle.js',
+        '/built_assets/dlls/vendors_0.style.dll.css',
+        '/built_assets/dlls/vendors_1.style.dll.css',
+        '/built_assets/dlls/vendors_2.style.dll.css',
+        '/built_assets/dlls/vendors_3.style.dll.css',
+        '/bundles/kbn-ui-shared-deps/kbn-ui-shared-deps.css',
+        '/bundles/kbn-ui-shared-deps/kbn-ui-shared-deps.light.css',
+        '/node_modules/@kbn/ui-framework/dist/kui_light.css',
+        '/bundles/light_theme.style.css',
+        '/bundles/commons.style.css',
+        '/built_assets/css/plugins/visualizations/index.light.css',
+        '/built_assets/css/plugins/vis_type_vega/index.light.css',
+        '/built_assets/css/plugins/metrics/index.light.css',
+        '/built_assets/css/plugins/timelion_vis/index.light.css',
+        '/built_assets/css/plugins/tagcloud/index.light.css',
+        '/built_assets/css/plugins/table_vis/index.light.css',
+        '/built_assets/css/plugins/metric_vis/index.light.css',
+        '/built_assets/css/plugins/markdown_vis/index.light.css',
+        '/built_assets/css/plugins/vis_default_editor/index.light.css',
+        '/built_assets/css/plugins/timelion/index.light.css',
+        '/built_assets/css/plugins/tile_map/index.light.css',
+        '/built_assets/css/plugins/newsfeed/index.light.css',
+        '/built_assets/css/plugins/kibana_react/index.light.css',
+        '/built_assets/css/plugins/kibana/index.light.css',
+        '/built_assets/css/plugins/input_control_vis/index.light.css',
+        '/built_assets/css/plugins/triggers_actions_ui/index.light.css',
+        '/built_assets/css/plugins/lens/index.light.css',
+        '/built_assets/css/plugins/cross_cluster_replication/index.light.css',
+        '/built_assets/css/plugins/remoteClusters/index.light.css',
+        '/built_assets/css/plugins/rollup/index.light.css',
+        '/built_assets/css/plugins/index_lifecycle_management/np_ready/application/index.light.css',
+        '/built_assets/css/plugins/canvas/style/index.light.css',
+        '/built_assets/css/plugins/maps/index.light.css',
+        '/built_assets/css/plugins/apm/index.light.css',
+        '/built_assets/css/plugins/spaces/index.light.css',
+        '/built_assets/css/plugins/monitoring/index.light.css',
+        '/built_assets/css/core.light.css',
+    ]
+String.prototype.replaceAll = function (s1, s2) {
+    return this.replace(new RegExp(s1, "gm"), s2);
+}
+
+const kibanaModifyUrls = [
+    "/login",
+    "/logout",
+    "/bundles/app/core/bootstrap.js",
+    "/bundles/commons.bundle.js",
+    "/bundles/plugin/security/security.plugin.js",
+]
+
+function applyRedirectKibana(from) {
+    app.use(from, expressModifyResponse(
+        (req, res) => {
+            if (res.getHeader('Content-Type') === undefined) return false
+            if (res.getHeader('Content-Type').startsWith('text/html')) return true;
+            if (res.getHeader('Content-Type').startsWith('application/javascript')) return true;
+            if (res.statusCode === 302) return false
+            return false;
+        }, (req, res, body) => {
+
+            // res.setHeader("Content-Security-Policy",`script-src 'unsafe-inline'`)
+            if (kibanaModifyUrls.indexOf(req.path) === -1) {
+                return body;
+            }
+            let data = pako.inflate(body)
+            let bodyStr = data.reduce((acc, i) => acc += String.fromCharCode.apply(null, [i]), '');
+
+            if (res.getHeader("content-type").startsWith("text/html")) {
+                bodyStr = bodyStr.replace(`<script src="/bundles/app/core/bootstrap.js"></script>`,
+                    `<script src="/service/kibana/bundles/app/core/bootstrap.js"></script>`)
+                    .replace(/url\('/g, `url('/service/kibana`)
+                    .replace(/href="/g, `href="/service/kibana`)
+                    .replace("&quot;serverBasePath&quot;:&quot;&quot;", "&quot;serverBasePath&quot;:&quot;/service/kibana&quot;")
+                    // .replace("&quot;serverBasePath&quot;:&quot;&quot;", "&quot;serverBasePath&quot;:&quot;/service/kibana&quot;")
+                    .replace("/translations/en.json", "/service/kibana/translations/en.json")
+                    .replace(/\/home\/admin/g, `/service/kibana/home/admin`)
+                    // .replace(/&quot;elasticsearchUrl&quot;:&quot;(.*)&quot;/g, `&quot;elasticsearchUrl&quot;:&quot;/service/kibana&quot;`)
+                    .replace("/app/kibana", `/service/kibana/app/kibana`)
+                    // .replace("window.__kbnCspNotEnforced__ = true;", ``)
+                    // .replace("<kbn-csp data=\"{&quot;strictCsp&quot;:false}\"></kbn-csp>", `<kbn-csp data=\"{&quot;strictCsp&quot;:true}\"></kbn-csp>`)
+
+            } else if (res.getHeader("content-type").startsWith("application/javascript")) {
+                kibanaUrls.forEach(i => {
+                    bodyStr = bodyStr.replace(i, `/service/kibana${i}`)
+                })
+                // bodyStr = bodyStr.replace(/url\('/g, `url('/service/kibana`)
+                bodyStr = bodyStr.replace(/addBasePath\("\/bundles\/plugin/g, `addBasePath("/service/kibana/bundles/plugin`)
+                // bodyStr = bodyStr.replace("_defineProperty(this, \"serverBasePath\", void 0);", "_defineProperty(this, \"serverBasePath\", \"/service/kibana\");")
+                // bodyStr = bodyStr.replace("window.location.assign(\"\".concat(this.logoutUrl", "window.location.assign(\"\".concat(\"/service/kibana\"+this.logoutUrl")
+                bodyStr = bodyStr.replace("request=this.createRequest(fetchOptions);",
+                    `fetchOptions.path="/service/kibana"+fetchOptions.path;request=this.createRequest(fetchOptions);`)
+
+            }
+            return pako.gzip(bodyStr, {to: 'string'});
+        }
+    ))
+}
 
 function applyRedirectRabbitMq(fromPath) {
     app.use(fromPath, expressModifyResponse(
@@ -256,8 +370,6 @@ function applyProxy(fromPath, to) {
             changeOrigin: true,
             target: to
         }, next);
-
-
     })
 }
 
@@ -266,12 +378,12 @@ function doAuth(req, res, requestIp, requestUrl, next) {
         const token = req.cookies[authKey];
         if (token == null) {
             logger.error(`[No Permission] IP [${requestIp}] 正在访问 ${requestUrl}`);
-            return res.redirect(`/${basePath}/login`);
+            return res.redirect(`/${basePath}/login/console/login`);
         }
         jwt.verify(token, authSecret, (err, user) => {
             if (err) {
                 logger.error(`[Invalid Token] IP [${requestIp}] 正在访问 ${requestUrl}`);
-                return res.redirect(`/${basePath}/login`);
+                return res.redirect(`/${basePath}/login/console/login`);
             }
             logger.debug(`用户 [${user}] IP [${requestIp}] 正在访问 ${requestUrl}`);
             req.headers['access-payload'] = user.payload
@@ -279,7 +391,7 @@ function doAuth(req, res, requestIp, requestUrl, next) {
         });
     } else {
         logger.error(`[No Auth Info] IP [${requestIp}] 正在访问 ${requestUrl}`);
-        return res.redirect(`/${basePath}/login`);
+        return res.redirect(`/${basePath}/login/console/login`);
     }
 }
 
