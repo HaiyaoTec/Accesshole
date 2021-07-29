@@ -33,16 +33,21 @@ function testConfig() {
     router = {}
     authRule = {"includes": [], "excludes": []}
     enableAuth = "true"
-    basePath = "service"
+    basePath = ""
     authKey = "token"
     authSecret = "sylas2020"
-    remoteRouterPath = 'http://172.21.208.181:8080/accessHole/definitions'
+    remoteRouterPath = 'http://172.31.236.123:8080/accessHole/definitions'
 }
 
 
 function applyRoute() {
     for (const module in router) {
-        let from = `/${basePath}/${module}`
+        let from
+        if (basePath) {
+            from = `/${basePath}/${module}`;
+        } else {
+            from = `/${module}`
+        }
         let definition = router[module];
         if (definition.authInclude || definition.authExclude) {
             applyAuth(module, {
@@ -79,6 +84,9 @@ function applyRoute() {
                 break
         }
 
+        if (!module) {
+            applyProxy(module, to)
+        }
         applyProxy(from, to);
     }
 }
@@ -262,8 +270,8 @@ function applyRedirectKibana(from) {
                     .replace(/\/home\/admin/g, `/service/kibana/home/admin`)
                     // .replace(/&quot;elasticsearchUrl&quot;:&quot;(.*)&quot;/g, `&quot;elasticsearchUrl&quot;:&quot;/service/kibana&quot;`)
                     .replace("/app/kibana", `/service/kibana/app/kibana`)
-                    // .replace("window.__kbnCspNotEnforced__ = true;", ``)
-                    // .replace("<kbn-csp data=\"{&quot;strictCsp&quot;:false}\"></kbn-csp>", `<kbn-csp data=\"{&quot;strictCsp&quot;:true}\"></kbn-csp>`)
+                // .replace("window.__kbnCspNotEnforced__ = true;", ``)
+                // .replace("<kbn-csp data=\"{&quot;strictCsp&quot;:false}\"></kbn-csp>", `<kbn-csp data=\"{&quot;strictCsp&quot;:true}\"></kbn-csp>`)
 
             } else if (res.getHeader("content-type").startsWith("application/javascript")) {
                 kibanaUrls.forEach(i => {
@@ -378,12 +386,14 @@ function doAuth(req, res, requestIp, requestUrl, next) {
         const token = req.cookies[authKey];
         if (token == null) {
             logger.error(`[No Permission] IP [${requestIp}] 正在访问 ${requestUrl}`);
-            return res.redirect(`/${basePath}/login/console/login`);
+            return res.redirect(getRealLogin())
+
         }
         jwt.verify(token, authSecret, (err, user) => {
             if (err) {
                 logger.error(`[Invalid Token] IP [${requestIp}] 正在访问 ${requestUrl}`);
-                return res.redirect(`/${basePath}/login/console/login`);
+                return res.redirect(getRealLogin())
+
             }
             logger.debug(`用户 [${user}] IP [${requestIp}] 正在访问 ${requestUrl}`);
             req.headers['access-payload'] = user.payload
@@ -391,7 +401,8 @@ function doAuth(req, res, requestIp, requestUrl, next) {
         });
     } else {
         logger.error(`[No Auth Info] IP [${requestIp}] 正在访问 ${requestUrl}`);
-        return res.redirect(`/${basePath}/login/console/login`);
+        return res.redirect(getRealLogin())
+
     }
 }
 
@@ -417,12 +428,20 @@ function applyPathFix() {
                 proxyRes.headers['location'] = req.baseUrl + jumpTo
             }
             if (proxyRes.statusCode === 403) {
-                res.redirect(`/${basePath}/login/console/login`)
+                res.redirect(getRealLogin())
             }
         } catch (e) {
             logger.error(e)
         }
 
     });
+}
+
+function getRealLogin() {
+    if (basePath) {
+        return `/${basePath}/login/console/login`;
+    } else {
+        return "/login/console/login"
+    }
 }
 
